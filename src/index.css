@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: theme('fontFamily.sans');
+  color: theme('colors.ink.800');
+  background: theme('colors.canvas');
+}
+
+/* 顶部全站视觉签名：一条品牌细线 */
+.brand-hairline {
+  height: 3px;
+  background: theme('backgroundImage.brand-grad');
+}
+
+/* eyebrow 小标签：全大写 + 字间距 */
+.eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* 阅读正文排版：窄栏、宽行高、首行不缩进段距清晰 */
+.prose-reader {
+  font-family: theme('fontFamily.serif');
+  font-size: 18px;
+  line-height: 2;
+  color: theme('colors.ink.700');
+}
+.prose-reader p {
+  margin: 0 0 1.4em;
+  text-indent: 2em;
+}
+
+/* 细滚动条 */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: theme('colors.ink.200');
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.ink.300');
+  background-clip: padding-box;
+  border: 3px solid transparent;
+}
