@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { NavLink, Link, Outlet, useLocation } from 'react-router-dom'
 import { Search, BookOpen, ArrowRight, Sparkles, X, Send, Compass } from 'lucide-react'
 import { site, nav, footer } from '../data/site.js'
-import { books } from '../data/books.js'
+import { getBook } from '../data/books.js'
 import { cx } from './ui.jsx'
+import { useAIChat } from '../lib/useAIChat.js'
 
 function TopBar({ aiOpen, onToggleAi }) {
   return (
@@ -89,10 +90,40 @@ const navHints = {
   },
 }
 
+// pathname → 页面感知 context（page 归一化 + 中文页名）
+function navContextOf(pathname) {
+  const page = pathname.includes('/library') ? 'library' : pathname === '/' ? 'home' : 'other'
+  const pageName = nav.find((n) => (n.to === '/' ? pathname === '/' : pathname.startsWith(n.to)))?.label || '首页'
+  return { page, pageName }
+}
+
 function AINavSidebar({ onClose }) {
   const { pathname } = useLocation()
   const hint = navHints[pathname] || navHints['/']
-  const recs = books.slice(0, 3)
+  const recs = ['andersen', 'shiwange-weishenme', 'xiyouji-shaoer'].map(getBook)
+
+  // 初始欢迎消息：保留「找书推荐书卡」作为第一条 AI 消息（kind:'welcome' 特殊渲染），之后走真对话
+  const { messages, loading, send } = useAIChat({
+    initial: [{ role: 'assistant', kind: 'welcome', content: hint.welcome }],
+    getContext: () => navContextOf(pathname),
+  })
+
+  const [input, setInput] = useState('')
+  const scrollRef = useRef(null)
+
+  // 新消息 / loading 变化时滚到底
+  useEffect(() => {
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages, loading])
+
+  const submit = () => {
+    if (!input.trim() || loading) return
+    const t = input
+    setInput('')
+    send(t)
+  }
+
   return (
     <aside className="hidden xl:flex flex-col fixed top-[67px] right-0 bottom-0 w-[360px] z-30 bg-surface border-l border-hair shadow-e3 animate-fade-in">
       {/* 标题栏 */}
@@ -113,46 +144,64 @@ function AINavSidebar({ onClose }) {
         </button>
       </div>
       {/* 对话区 */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5">
-        <div className="flex gap-2.5">
-          <span className="grid place-items-center w-7 h-7 rounded-lg bg-brand-50 text-brand-600 shrink-0 mt-0.5">
-            <Sparkles className="w-4 h-4" />
-          </span>
-          <div className="rounded-2xl rounded-tl-md bg-surface-soft border border-hair px-3.5 py-2.5 text-sm text-ink-700 leading-relaxed">
-            {hint.welcome}
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <div className="rounded-2xl rounded-tr-md bg-brand-grad text-white px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] shadow-glow">
-            想给三年级找本有趣的书
-          </div>
-        </div>
-        <div className="flex gap-2.5">
-          <span className="grid place-items-center w-7 h-7 rounded-lg bg-brand-50 text-brand-600 shrink-0 mt-0.5">
-            <Sparkles className="w-4 h-4" />
-          </span>
-          <div className="rounded-2xl rounded-tl-md bg-surface-soft border border-hair px-3.5 py-2.5 text-sm text-ink-700 leading-relaxed">
-            这几本很受小朋友欢迎，点书名就能开始读：
-            <div className="mt-2.5 space-y-1.5">
-              {recs.map((b) => (
-                <Link
-                  key={b.id}
-                  to={`/reader/${b.id}`}
-                  className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-surface border border-hair hover:border-brand-300 transition group"
-                >
-                  <span
-                    className="w-6 h-8 rounded shrink-0"
-                    style={{ backgroundImage: `linear-gradient(150deg, ${b.cover[0]}, ${b.cover[1]})` }}
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-xs font-semibold text-ink-800 group-hover:text-brand-600 truncate">{b.title}</span>
-                    <span className="block text-[11px] text-ink-400">{b.author} · {b.grade}</span>
-                  </span>
-                </Link>
-              ))}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5">
+        {messages.map((m, i) =>
+          m.role === 'user' ? (
+            <div key={i} className="flex justify-end">
+              <div className="rounded-2xl rounded-tr-md bg-brand-grad text-white px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] shadow-glow whitespace-pre-wrap">
+                {m.content}
+              </div>
+            </div>
+          ) : (
+            <div key={i} className="flex gap-2.5">
+              <span className="grid place-items-center w-7 h-7 rounded-lg bg-brand-50 text-brand-600 shrink-0 mt-0.5">
+                <Sparkles className="w-4 h-4" />
+              </span>
+              <div className="rounded-2xl rounded-tl-md bg-surface-soft border border-hair px-3.5 py-2.5 text-sm text-ink-700 leading-relaxed whitespace-pre-wrap">
+                {m.content}
+                {/* 欢迎消息附带「找书推荐书卡」 */}
+                {m.kind === 'welcome' && (
+                  <div className="mt-2.5 space-y-1.5">
+                    {recs.map((b) => (
+                      <Link
+                        key={b.id}
+                        to={`/reader/${b.id}`}
+                        className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-surface border border-hair hover:border-brand-300 transition group"
+                      >
+                        <span
+                          className="w-6 h-8 rounded shrink-0"
+                          style={{ backgroundImage: `linear-gradient(150deg, ${b.cover[0]}, ${b.cover[1]})` }}
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-xs font-semibold text-ink-800 group-hover:text-brand-600 truncate">{b.title}</span>
+                          <span className="block text-[11px] text-ink-400">{b.author} · {b.grade}</span>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ),
+        )}
+        {/* 思考中 loading 态 */}
+        {loading && (
+          <div className="flex gap-2.5">
+            <span className="grid place-items-center w-7 h-7 rounded-lg bg-brand-50 text-brand-600 shrink-0 mt-0.5">
+              <Sparkles className="w-4 h-4" />
+            </span>
+            <div className="rounded-2xl rounded-tl-md bg-surface-soft border border-hair px-3.5 py-2.5 text-sm text-ink-500 leading-relaxed">
+              <span className="inline-flex gap-1 items-center">
+                思考中
+                <span className="inline-flex gap-0.5">
+                  <span className="w-1 h-1 rounded-full bg-ink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1 h-1 rounded-full bg-ink-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1 h-1 rounded-full bg-ink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+              </span>
             </div>
           </div>
-        </div>
+        )}
       </div>
       {/* 输入区 */}
       <div className="border-t border-hair p-3 bg-surface">
@@ -160,7 +209,9 @@ function AINavSidebar({ onClose }) {
           {hint.chips.map((c) => (
             <button
               key={c}
-              className="px-2.5 py-1 rounded-full bg-ink-50 text-ink-600 text-[11px] font-medium hover:bg-brand-50 hover:text-brand-600 transition"
+              onClick={() => send(c)}
+              disabled={loading}
+              className="px-2.5 py-1 rounded-full bg-ink-50 text-ink-600 text-[11px] font-medium hover:bg-brand-50 hover:text-brand-600 transition disabled:opacity-50"
             >
               {c}
             </button>
@@ -168,10 +219,23 @@ function AINavSidebar({ onClose }) {
         </div>
         <div className="flex items-center gap-2 rounded-2xl border border-ink-150 bg-surface-soft px-3 py-2 focus-within:border-brand-300 transition">
           <input
-            className="flex-1 bg-transparent text-sm text-ink-700 placeholder:text-ink-400 outline-none"
-            placeholder="问我找书、逛网站…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                e.preventDefault()
+                submit()
+              }
+            }}
+            disabled={loading}
+            className="flex-1 bg-transparent text-sm text-ink-700 placeholder:text-ink-400 outline-none disabled:opacity-60"
+            placeholder={loading ? '思考中…' : '问我找书、逛网站…'}
           />
-          <button className="grid place-items-center w-8 h-8 rounded-xl bg-brand-grad text-white shadow-glow shrink-0">
+          <button
+            onClick={submit}
+            disabled={loading || !input.trim()}
+            className="grid place-items-center w-8 h-8 rounded-xl bg-brand-grad text-white shadow-glow shrink-0 disabled:opacity-50"
+          >
             <Send className="w-4 h-4" />
           </button>
         </div>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as Lucide from 'lucide-react'
 import { genreMeta } from '../data/books.js'
@@ -39,14 +40,17 @@ export function SectionHead({ eyebrow, title, desc, center, className }) {
   )
 }
 
-// 渐变书封（无图也美观）
+// 书封：优先真实封面图 /covers/<id>.jpg，加载失败回退渐变文字封（无图也美观）
 export function BookCover({ book, className }) {
   const [c1, c2] = book.cover || ['#4C7DFF', '#3B66F5']
+  const [imgOk, setImgOk] = useState(true)
+  const src = `${import.meta.env.BASE_URL}covers/${book.id}.jpg`
   return (
     <div
       className={cx('relative aspect-[3/4] rounded-xl overflow-hidden shadow-e2', className)}
       style={{ backgroundImage: `linear-gradient(150deg, ${c1}, ${c2})` }}
     >
+      {/* 渐变文字封：封面图未到位 / 加载失败时兜底，永远美观 */}
       <div className="absolute inset-0 bg-hero-sheen opacity-70" />
       <div className="absolute left-0 inset-y-0 w-1.5 bg-white/25" />
       <div className="absolute inset-0 p-4 flex flex-col">
@@ -56,6 +60,16 @@ export function BookCover({ book, className }) {
           <p className="text-white/85 text-xs mt-1.5">{book.author}</p>
         </div>
       </div>
+      {/* 真实封面：加载成功铺满覆盖渐变；onError 时隐藏，露出下方文字封 */}
+      {imgOk && (
+        <img
+          src={src}
+          alt={book.title}
+          loading="lazy"
+          onError={() => setImgOk(false)}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
     </div>
   )
 }

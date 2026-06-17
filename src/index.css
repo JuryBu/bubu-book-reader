@@ -45,6 +45,176 @@ body {
   text-indent: 2em;
 }
 
+/* ===== 3D 翻页书（react-pageflip）===== */
+/* 舞台：给翻页书一个等比、居中的容器；高度按视口算，留出顶/底控制条空间 */
+.flip-stage {
+  position: relative;
+  width: 100%;
+  height: min(62vh, 680px);
+  min-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* 钉死书总宽高的 shell：让 StPageFlip 的 width:100% 撑满精确宽度而非被侧栏挤压的父宽 */
+.flip-book-shell {
+  position: relative;
+  margin: 0 auto;
+  max-width: 100%;
+}
+/* react-pageflip 包裹层 */
+.flip-book {
+  margin: 0 auto;
+}
+/* 单张书页：纸张底色 + 内阴影营造书脊；文字必须可选 */
+.flip-page {
+  background: theme('colors.paper');
+  background-image: linear-gradient(90deg, rgba(20, 28, 56, 0.05), rgba(20, 28, 56, 0) 6%);
+  box-shadow: inset 0 0 60px rgba(20, 28, 56, 0.025);
+  overflow: hidden;
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* 右页（偶数页背面/奇数视觉右侧）书脊阴影镜像，靠 page-flip 自带 density 处理，这里只统一底色 */
+.flip-page-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+/* 正文区：占满，溢出兜底可滚（正常分页后不会溢出，超长单段时保底） */
+.flip-page-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.flip-page-body p:last-child {
+  margin-bottom: 0;
+}
+/* 页脚页码 */
+.flip-page-foot {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 12px;
+  color: theme('colors.ink.300');
+  padding-top: 8px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* page-flip 库会给可点击页加 cursor；翻页书内文字选中时用文本光标 */
+.flip-book .stf__item {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Ctrl 拖选模式：书页区域光标变文本光标，暗示「现在能选字了」。
+   注意只改光标观感，拦截逻辑在 JS（捕获阶段 stopPropagation），这里不动 user-select。 */
+.flip-stage--selecting .flip-book,
+.flip-stage--selecting .flip-book * {
+  cursor: text !important;
+}
+
+/* ===== 阅读区常驻轻提示：按住 Ctrl 拖动可选中文字 ===== */
+/* 浮在舞台右上角，半透明不挡读；Ctrl 按下时高亮放大，提示进入选字态 */
+.flip-hint {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: theme('colors.ink.500');
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid theme('colors.hair');
+  box-shadow: 0 2px 8px rgba(20, 28, 56, 0.07);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  user-select: none;
+  transition: color 0.16s ease, background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+.flip-hint svg {
+  color: theme('colors.accent.500');
+}
+.flip-hint--active {
+  color: theme('colors.brand.700');
+  background: theme('colors.brand.50');
+  border-color: theme('colors.brand.200');
+  transform: scale(1.04);
+  box-shadow: 0 4px 14px rgba(76, 125, 255, 0.22);
+}
+.flip-hint--active svg {
+  color: theme('colors.brand.600');
+}
+
+/* ===== 选中文本标注高亮 ===== */
+/* 暖琥珀底高亮，贴合品牌 accent；圆角让划重点更柔和 */
+.annot-mark {
+  background: linear-gradient(180deg, rgba(255, 180, 90, 0.32) 0%, rgba(255, 157, 66, 0.42) 100%);
+  color: inherit;
+  border-radius: 4px;
+  padding: 0.05em 0.12em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  box-shadow: inset 0 -1px 0 rgba(242, 133, 30, 0.35);
+}
+
+/* ===== 选中浮层工具条 ===== */
+/* fixed 定位、z-index 远高于翻页书；轻微浮起 + 小箭头观感 */
+.selection-toolbar {
+  position: fixed;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid theme('colors.hair');
+  box-shadow: 0 6px 18px rgba(20, 28, 56, 0.16), 0 2px 6px rgba(20, 28, 56, 0.1);
+  backdrop-filter: blur(8px);
+  animation: selection-pop 0.16s cubic-bezier(0.34, 1.4, 0.5, 1) both;
+  white-space: nowrap;
+}
+@keyframes selection-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+.selection-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: theme('colors.ink.700');
+  background: transparent;
+  transition: background 0.14s ease, color 0.14s ease;
+  cursor: pointer;
+}
+.selection-toolbar-btn:hover {
+  background: theme('colors.brand.50');
+  color: theme('colors.brand.600');
+}
+.selection-toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background: theme('colors.hair');
+}
+
 /* 细滚动条 */
 *::-webkit-scrollbar {
   width: 10px;

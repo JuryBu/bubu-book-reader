@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom'
 import { Sparkles, ArrowRight, Cpu } from 'lucide-react'
 import { Icon, Eyebrow, SectionHead, BookCard, BookCover, PrimaryButton, GhostButton } from '../components/ui.jsx'
 import { site, heroIntro, heroStats, ideas, boards, modes, missions, evalDims, evalPhases } from '../data/site.js'
-import { books } from '../data/books.js'
+import { getBook } from '../data/books.js'
 
 function HeroArt() {
-  const picks = [books[2], books[13], books[7]] // 安徒生童话 / 西游记 / 十万个为什么
+  const picks = [getBook('andersen'), getBook('xiyouji-shaoer'), getBook('shiwange-weishenme')] // 安徒生童话 / 西游记 / 十万个为什么
   return (
     <div className="relative h-[440px] hidden lg:block animate-fade-in">
       <div className="absolute -right-2 top-2 w-56 rotate-3 animate-float">
@@ -113,8 +113,8 @@ export default function Home() {
             </Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 mt-10">
-            {books.slice(0, 6).map((b) => (
-              <BookCard key={b.id} book={b} />
+            {['yeye-yiding-you-banfa', 'andersen', 'shiwange-weishenme', 'sanzijing', 'xiyouji-shaoer', 'shaonian-yingxiong'].map((id) => (
+              <BookCard key={id} book={getBook(id)} />
             ))}
           </div>
         </div>

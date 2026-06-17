@@ -1,28 +1,18 @@
 import { useMemo, useState } from 'react'
 import { Sparkles, GraduationCap, Layers, Library as LibraryIcon, ArrowDown } from 'lucide-react'
 import { Icon, Eyebrow, GenreTag, BookCard, cx } from '../components/ui.jsx'
-import { books, genreMeta, grades } from '../data/books.js'
+import { books, genreMeta, stages, stageOf } from '../data/books.js'
 
-// —— 学段元信息（局部数据：为每个学段配一句导读 + 配色，让分组小标题更饱满）——
-const gradeMeta = {
-  一年级: { stage: '低段 · 启蒙', blurb: '从韵律与图像走进文字，点燃最初的阅读兴趣。', icon: 'Sprout', accent: '#FF9D42' },
-  二年级: { stage: '低段 · 入门', blurb: '在温柔的童话里读懂陪伴，养成天天读一点的习惯。', icon: 'Leaf', accent: '#7A5BFF' },
-  三年级: { stage: '中段 · 进阶', blurb: '中外经典童话与名篇，开始体会人物、情节与情感。', icon: 'BookOpen', accent: '#3B66F5' },
-  四年级: { stage: '中段 · 拓展', blurb: '神话寓言与科普并行，在故事与求知间自由穿行。', icon: 'Compass', accent: '#12B886' },
-  五年级: { stage: '高段 · 视野', blurb: '走进民间故事与世界文学，看见更辽阔的文化版图。', icon: 'Globe2', accent: '#15B8C4' },
-  六年级: { stage: '高段 · 深读', blurb: '挑战长篇名著，培养阅读耐力与独立的思考判断。', icon: 'Mountain', accent: '#2E51DB' },
-}
-
-const slugForGrade = (g) => `grade-${grades.indexOf(g)}`
+const slugForStage = (key) => `stage-${key}`
 
 // —— 顶部统计 —— 由真实书库派生，像真站一样有数据支撑
 function useLibraryStats() {
   return useMemo(() => {
     const genres = new Set(books.map((b) => b.genre))
-    const coveredGrades = grades.filter((g) => books.some((b) => b.grade === g))
+    const coveredStages = stages.filter((s) => books.some((b) => stageOf(b.grade).key === s.key))
     return [
       { value: books.length, label: '精选书目' },
-      { value: `${coveredGrades.length}`, label: '覆盖年级', suffix: ' 个学段' },
+      { value: `${coveredStages.length}`, label: '覆盖学段', suffix: ' 个' },
       { value: genres.size, label: '阅读体裁' },
     ]
   }, [])
@@ -56,7 +46,7 @@ function GenrePill({ name, active, count, onClick }) {
 
 export default function Library() {
   const stats = useLibraryStats()
-  const [activeGrade, setActiveGrade] = useState(null) // 仅用于侧栏视觉高亮
+  const [activeStage, setActiveStage] = useState(null) // 仅用于侧栏视觉高亮
   const [activeGenre, setActiveGenre] = useState(null) // null = 全部体裁
 
   // 体裁 → 数量
@@ -67,13 +57,20 @@ export default function Library() {
     return map
   }, [])
 
-  // 按学段分组（保持 grades 顺序），并应用体裁筛选
+  // 每个学段的书目总数（不受体裁筛选影响，用于侧栏计数）
+  const stageCounts = useMemo(() => {
+    const map = {}
+    stages.forEach((s) => (map[s.key] = 0))
+    books.forEach((b) => (map[stageOf(b.grade).key] += 1))
+    return map
+  }, [])
+
+  // 按学段分组（低 / 中 / 高），并应用体裁筛选
   const groups = useMemo(() => {
-    return grades
-      .map((g) => ({
-        grade: g,
-        meta: gradeMeta[g],
-        items: books.filter((b) => b.grade === g && (!activeGenre || b.genre === activeGenre)),
+    return stages
+      .map((s) => ({
+        meta: s,
+        items: books.filter((b) => stageOf(b.grade).key === s.key && (!activeGenre || b.genre === activeGenre)),
       }))
       .filter((grp) => grp.items.length > 0)
   }, [activeGenre])
@@ -81,9 +78,9 @@ export default function Library() {
   const matchedCount = groups.reduce((n, g) => n + g.items.length, 0)
 
   // 平滑滚动到学段锚点
-  const scrollToGrade = (g) => {
-    setActiveGrade(g)
-    const el = document.getElementById(slugForGrade(g))
+  const scrollToStage = (key) => {
+    setActiveStage(key)
+    const el = document.getElementById(slugForStage(key))
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -133,14 +130,13 @@ export default function Library() {
                 <Eyebrow>按学段浏览</Eyebrow>
               </div>
               <nav className="mt-4 space-y-1">
-                {grades.map((g) => {
-                  const count = books.filter((b) => b.grade === g).length
-                  const active = activeGrade === g
-                  const m = gradeMeta[g]
+                {stages.map((s) => {
+                  const count = stageCounts[s.key]
+                  const active = activeStage === s.key
                   return (
                     <button
-                      key={g}
-                      onClick={() => scrollToGrade(g)}
+                      key={s.key}
+                      onClick={() => scrollToStage(s.key)}
                       className={cx(
                         'group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-220',
                         active ? 'bg-brand-50 shadow-inner-hi' : 'hover:bg-ink-50',
@@ -151,15 +147,15 @@ export default function Library() {
                           'grid place-items-center w-8 h-8 rounded-lg shrink-0 transition-colors',
                           active ? 'text-white shadow-e1' : 'text-ink-400 bg-ink-50 group-hover:text-ink-600',
                         )}
-                        style={active ? { backgroundColor: m.accent } : undefined}
+                        style={active ? { backgroundColor: s.accent } : undefined}
                       >
-                        <Icon name={m.icon} className="w-4 h-4" />
+                        <Icon name={s.icon} className="w-4 h-4" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className={cx('block text-sm font-semibold transition-colors', active ? 'text-brand-700' : 'text-ink-700 group-hover:text-ink-900')}>
-                          {g}
+                          {s.label}
                         </span>
-                        <span className="block text-micro text-ink-400">{m.stage}</span>
+                        <span className="block text-micro text-ink-400">{s.range} · {s.stage}</span>
                       </span>
                       <span className={cx('text-micro font-bold tabular-nums', active ? 'text-brand-500' : 'text-ink-300')}>{count}</span>
                     </button>
@@ -258,7 +254,7 @@ export default function Library() {
             {/* 按学段分组 */}
             <div className="mt-8 space-y-14">
               {groups.map((grp, gi) => (
-                <section key={grp.grade} id={slugForGrade(grp.grade)} className="scroll-mt-24 animate-fade-up" style={{ animationDelay: `${gi * 60}ms` }}>
+                <section key={grp.meta.key} id={slugForStage(grp.meta.key)} className="scroll-mt-24 animate-fade-up" style={{ animationDelay: `${gi * 60}ms` }}>
                   {/* 分组小标题 */}
                   <div className="flex items-center gap-4">
                     <span
@@ -269,8 +265,8 @@ export default function Library() {
                     </span>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2.5">
-                        <h2 className="font-serif text-h1 font-bold text-ink-900 tracking-tightish">{grp.grade}</h2>
-                        <span className="px-2 py-0.5 rounded-full bg-ink-50 text-micro font-semibold text-ink-500">{grp.meta.stage}</span>
+                        <h2 className="font-serif text-h1 font-bold text-ink-900 tracking-tightish">{grp.meta.label}</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-ink-50 text-micro font-semibold text-ink-500">{grp.meta.range} · {grp.meta.stage}</span>
                         <span className="text-micro text-ink-400 tabular-nums">{grp.items.length} 本</span>
                       </div>
                       <p className="text-caption sm:text-sm text-ink-500 mt-0.5 leading-snug">{grp.meta.blurb}</p>

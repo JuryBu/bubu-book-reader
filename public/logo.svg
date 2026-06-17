@@ -1,0 +1,22 @@
+﻿<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="30" fill="url(#bg)"/>
+  <path d="M34 34C34 29.5817 37.5817 26 42 26H90C94.4183 26 98 29.5817 98 34V94C98 98.4183 94.4183 102 90 102H42C37.5817 102 34 98.4183 34 94V34Z" fill="#FDF7EA" stroke="#D6C7AE" stroke-width="3"/>
+  <path d="M42 26H87C91.4183 26 95 29.5817 95 34V95C95 95 86.5 89.5 75.5 94.5C64.5 99.5 54.5 94.5 42 100V26Z" fill="url(#paper)"/>
+  <path d="M43 38C54 33 64 39 75 35C83 32 89 34 94 38" stroke="#7B5CE1" stroke-width="4" stroke-linecap="round"/>
+  <path d="M44 53H82" stroke="#2E51DB" stroke-width="5" stroke-linecap="round"/>
+  <path d="M44 66H76" stroke="#2E51DB" stroke-width="5" stroke-linecap="round" opacity="0.78"/>
+  <path d="M44 79H68" stroke="#2E51DB" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+  <path d="M91 49L94.2 56.8L102 60L94.2 63.2L91 71L87.8 63.2L80 60L87.8 56.8L91 49Z" fill="#FFB45A"/>
+  <path d="M28 48L30.1 53.9L36 56L30.1 58.1L28 64L25.9 58.1L20 56L25.9 53.9L28 48Z" fill="#19C0CC"/>
+  <defs>
+    <linearGradient id="bg" x1="16" y1="14" x2="112" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF2FF"/>
+      <stop offset="0.52" stop-color="#E8DEFF"/>
+      <stop offset="1" stop-color="#FFE7C2"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="43" y1="28" x2="96" y2="101" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F5EAD7"/>
+    </linearGradient>
+  </defs>
+</svg>
